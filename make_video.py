@@ -83,14 +83,16 @@ def load_font(size):
 
 
 def fit_image(img: Image.Image, w: int, h: int) -> Image.Image:
-    """アスペクト比を保ちながらクロップしてリサイズ"""
+    """元の比率を保ちつつ黒帯でフィット（クロップなし）"""
     iw, ih = img.size
-    scale = max(w / iw, h / ih)
+    scale = min(w / iw, h / ih)
     nw, nh = int(iw * scale), int(ih * scale)
     img = img.resize((nw, nh), Image.LANCZOS)
-    left = (nw - w) // 2
-    top = (nh - h) // 2
-    return img.crop((left, top, left + w, top + h))
+    canvas = Image.new("RGB", (w, h), (0, 0, 0))
+    ox = (w - nw) // 2
+    oy = (h - nh) // 2
+    canvas.paste(img, (ox, oy))
+    return canvas
 
 
 def make_gradient_overlay(w, h, alpha_top=180, alpha_bottom=220):
@@ -262,7 +264,7 @@ def make_ending_clip(duration=3.5):
         draw = ImageDraw.Draw(canvas)
 
         texts = [
-            ("OKURANO", font_title, (220, 185, 120), H // 2 - 70),
+            ("大嵓埜", font_title, (220, 185, 120), H // 2 - 70),
             ("心よりお待ちしております", font_sub, (240, 230, 210), H // 2 + 30),
         ]
         for text, font, color, y in texts:
@@ -279,9 +281,9 @@ def make_ending_clip(duration=3.5):
     return VideoClip(make_frame, duration=duration).with_fps(FPS)
 
 
-# --- 各クリップ生成 ---
+# --- 各クリップ生成（オープニングなし）---
 print("クリップ生成中...")
-clips = [make_opening_clip(3.0)]
+clips = []
 for scene in SCENES:
     clips.append(make_scene_clip(scene))
 clips.append(make_ending_clip(3.5))
