@@ -263,9 +263,19 @@ def make_ending_clip(duration=3.5):
 
         draw = ImageDraw.Draw(canvas)
 
+        # テキスト高さを計測して中央に揃える
+        b1 = draw.textbbox((0, 0), "大嵓埜", font=font_title)
+        b2 = draw.textbbox((0, 0), "心よりお待ちしております", font=font_sub)
+        h1 = b1[3] - b1[1]
+        h2 = b2[3] - b2[1]
+        gap = 40
+        total = h1 + gap + h2
+        y_title = H // 2 - total // 2
+        y_sub = y_title + h1 + gap
+
         texts = [
-            ("大嵓埜", font_title, (220, 185, 120), H // 2 - 70),
-            ("心よりお待ちしております", font_sub, (240, 230, 210), H // 2 + 30),
+            ("大嵓埜", font_title, (220, 185, 120), y_title),
+            ("心よりお待ちしております", font_sub, (240, 230, 210), y_sub),
         ]
         for text, font, color, y in texts:
             bbox = draw.textbbox((0, 0), text, font=font)
