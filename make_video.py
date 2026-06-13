@@ -14,7 +14,7 @@ from moviepy.video.fx import CrossFadeIn, CrossFadeOut
 IMG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images")
 OUTPUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pr_video.mp4")
 FONT_PATH = "/usr/share/fonts/truetype/fonts-japanese-gothic.ttf"
-W, H = 1280, 720
+W, H = 1080, 1920  # Instagram Reels/Stories 9:16
 FPS = 30
 
 # glob でパスを解決し、NFC正規化してマップ化
@@ -121,16 +121,16 @@ def draw_telop(img: Image.Image, main_text: str, sub_text: str, progress: float)
     draw = ImageDraw.Draw(canvas)
 
     # --- メインテロップ ---
-    font_main = load_font(72)
-    font_sub = load_font(30)
+    font_main = load_font(96)
+    font_sub = load_font(44)
 
     alpha = int(min(progress * 3, 1.0) * 255)
 
     # メインテキスト（中央下寄り）
     lines = main_text.split("\n")
-    line_height = 80
+    line_height = 110
     total_h = len(lines) * line_height
-    y_start = H - 240
+    y_start = H - 400
 
     for i, line in enumerate(lines):
         bbox = draw.textbbox((0, 0), line, font=font_main)
@@ -166,7 +166,7 @@ def draw_telop(img: Image.Image, main_text: str, sub_text: str, progress: float)
     line_alpha = int(min(progress * 4, 1.0) * 180)
     line_img = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
     ld = ImageDraw.Draw(line_img)
-    lw = 400
+    lw = 600
     lx = (W - lw) // 2
     ly = y_start - 18
     ld.line([(lx, ly), (lx + lw, ly)], fill=(220, 185, 120, line_alpha), width=1)
@@ -250,8 +250,8 @@ def make_opening_clip(duration=3.0):
 
 def make_ending_clip(duration=3.5):
     """エンディング"""
-    font_title = load_font(80)
-    font_sub = load_font(32)
+    font_title = load_font(120)
+    font_sub = load_font(50)
 
     def make_frame(t):
         fade_in = min(t / 1.0, 1.0)
@@ -301,7 +301,17 @@ for i, clip in enumerate(clips[1:], 1):
 
 final = CompositeVideoClip(result_clips)
 
+# BGM追加
+AUDIO_PATH = "/root/.claude/uploads/01ef7dc5-63ff-5dba-82b8-e670042a2b66/84a8c453-Moonlight_on_the_Bamboo_Grove.mp3"
+from moviepy import AudioFileClip
+from moviepy.audio.fx import AudioFadeOut
+if os.path.exists(AUDIO_PATH):
+    audio = AudioFileClip(AUDIO_PATH)
+    dur = min(final.duration, audio.duration - 0.05)
+    audio = audio.with_duration(dur).with_effects([AudioFadeOut(1.5)])
+    final = final.with_duration(dur).with_audio(audio)
+
 print(f"動画書き出し中 → {OUTPUT}")
-final.write_videofile(OUTPUT, fps=FPS, codec="libx264", audio=False,
+final.write_videofile(OUTPUT, fps=FPS, codec="libx264", audio_codec="aac",
                       preset="fast", threads=4, logger=None)
 print("完成！")
