@@ -248,45 +248,34 @@ def make_opening_clip(duration=3.0):
     return VideoClip(make_frame, duration=duration).with_fps(FPS)
 
 
-def make_ending_clip(duration=3.5):
-    """エンディング"""
-    font_title = load_font(120)
-    font_sub = load_font(50)
+def make_ending_clip(duration=4.0):
+    """QRコード画像をエンディングとして表示（フェードイン→ホールド→フェードアウト）"""
+    qr_path_key = unicodedata.normalize("NFC", "大嵓埜QR文字入り.png")
+    qr_path = {
+        unicodedata.normalize("NFC", os.path.basename(p)): p
+        for p in glob.glob(os.path.join(IMG_DIR, "*.png"))
+    }.get(qr_path_key)
+
+    # QR画像を黒背景の1080x1920キャンバスに中央配置
+    base = Image.new("RGB", (W, H), (8, 8, 8))
+    if qr_path:
+        qr = Image.open(qr_path).convert("RGBA")
+        # 縦に収まるようスケール
+        scale = min(W / qr.width, H / qr.height)
+        nw, nh = int(qr.width * scale), int(qr.height * scale)
+        qr = qr.resize((nw, nh), Image.LANCZOS)
+        bg = base.convert("RGBA")
+        ox, oy = (W - nw) // 2, (H - nh) // 2
+        bg.paste(qr, (ox, oy), qr)
+        base = bg.convert("RGB")
+    base_arr = np.array(base)
 
     def make_frame(t):
         fade_in = min(t / 1.0, 1.0)
         fade_out = 1.0 - min(max(t - (duration - 1.0), 0) / 1.0, 1.0)
-        alpha = int(min(fade_in, fade_out) * 255)
-
-        img = Image.new("RGB", (W, H), (8, 8, 8))
-        canvas = img.convert("RGBA")
-
-        draw = ImageDraw.Draw(canvas)
-
-        # テキスト高さを計測して中央に揃える
-        b1 = draw.textbbox((0, 0), "大嵓埜", font=font_title)
-        b2 = draw.textbbox((0, 0), "心よりお待ちしております", font=font_sub)
-        h1 = b1[3] - b1[1]
-        h2 = b2[3] - b2[1]
-        gap = 40
-        total = h1 + gap + h2
-        y_title = H // 2 - total // 2
-        y_sub = y_title + h1 + gap
-
-        texts = [
-            ("大嵓埜", font_title, (220, 185, 120), y_title),
-            ("心よりお待ちしております", font_sub, (240, 230, 210), y_sub),
-        ]
-        for text, font, color, y in texts:
-            bbox = draw.textbbox((0, 0), text, font=font)
-            tw = bbox[2] - bbox[0]
-            x = (W - tw) // 2
-            t_img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-            td = ImageDraw.Draw(t_img)
-            td.text((x, y), text, font=font, fill=(*color, alpha))
-            canvas = Image.alpha_composite(canvas, t_img)
-
-        return np.array(canvas.convert("RGB"))
+        a = min(fade_in, fade_out)
+        frame = (base_arr * a).astype(np.uint8)
+        return frame
 
     return VideoClip(make_frame, duration=duration).with_fps(FPS)
 
